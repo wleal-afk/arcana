@@ -105,9 +105,9 @@ Se degrada solo: sin TTY no hay animación, sin UTF-8 usa glifos ASCII, y respet
 | `PORT` | `3000` | |
 | `ARCANA_DB` | `./data/arcana.db` | |
 | `ARCANA_RETENTION_DAYS` | `180` | purga por inactividad |
-| `ARCANA_MODEL_INTERPRET` | `claude-opus-5` | es el producto; no conviene bajarlo |
-| `ARCANA_MODEL_ANALYSIS` | `claude-haiku-4-5` | extracción estructurada |
-| `ARCANA_MODEL_PROFILE` | `claude-haiku-4-5` | resumen en background |
+| `ARCANA_MODEL_INTERPRET` | `claude-opus-5` | ~95% del gasto: la palanca real de costo |
+| `ARCANA_MODEL_ANALYSIS` | `claude-opus-5` | extracción estructurada (~5% del gasto) |
+| `ARCANA_MODEL_PROFILE` | `claude-opus-5` | resumen en background |
 | `ARCANA_API` | `http://localhost:3000` | usada por el CLI |
 
 ## Tests

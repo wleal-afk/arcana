@@ -7,11 +7,12 @@ export function anthropic() {
   return _client;
 }
 
-// Un modelo por etapa. La interpretación es el producto y se queda en Opus;
-// análisis y perfil son extracción y resumen, y bajan a Haiku.
+// Un modelo por etapa, los tres en Opus 5 mientras se evalúa la calidad.
+// Bajar análisis y perfil a Haiku es un cambio de env var (ahorra ~11%);
+// la palanca real de costo es MODEL_INTERPRET, que es ~95% del gasto.
 export const MODEL_INTERPRET = process.env.ARCANA_MODEL_INTERPRET ?? 'claude-opus-5';
-export const MODEL_ANALYSIS = process.env.ARCANA_MODEL_ANALYSIS ?? 'claude-haiku-4-5';
-export const MODEL_PROFILE = process.env.ARCANA_MODEL_PROFILE ?? 'claude-haiku-4-5';
+export const MODEL_ANALYSIS = process.env.ARCANA_MODEL_ANALYSIS ?? 'claude-opus-5';
+export const MODEL_PROFILE = process.env.ARCANA_MODEL_PROFILE ?? 'claude-opus-5';
 
 // Haiku 4.5 y Sonnet 4.5 son de la generación anterior a `effort` y al thinking
 // adaptativo: mandarles cualquiera de los dos devuelve 400. Structured outputs
