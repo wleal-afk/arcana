@@ -7,11 +7,30 @@ export function anthropic() {
   return _client;
 }
 
-// Ambas etapas usan Opus 5 por defecto. La etapa de análisis es la que
-// naturalmente admite un modelo más barato: es extracción estructurada de un
-// texto corto. Se cambia con ARCANA_MODEL_ANALYSIS sin tocar código.
-export const MODEL_ANALYSIS = process.env.ARCANA_MODEL_ANALYSIS ?? 'claude-opus-5';
+// Un modelo por etapa. La interpretación es el producto y se queda en Opus;
+// análisis y perfil son extracción y resumen, y bajan a Haiku.
 export const MODEL_INTERPRET = process.env.ARCANA_MODEL_INTERPRET ?? 'claude-opus-5';
+export const MODEL_ANALYSIS = process.env.ARCANA_MODEL_ANALYSIS ?? 'claude-haiku-4-5';
+export const MODEL_PROFILE = process.env.ARCANA_MODEL_PROFILE ?? 'claude-haiku-4-5';
+
+// Haiku 4.5 y Sonnet 4.5 son de la generación anterior a `effort` y al thinking
+// adaptativo: mandarles cualquiera de los dos devuelve 400. Structured outputs
+// sí los soportan. Esta función es lo que hace que cambiar de modelo por env
+// var sea seguro y no rompa el request.
+const SIN_EFFORT_NI_ADAPTIVE = /haiku-4-5|sonnet-4-5|haiku-3|opus-4-1|opus-4-0/;
+
+export function tune(model, { effort, format, thinking = true } = {}) {
+  const legado = SIN_EFFORT_NI_ADAPTIVE.test(model);
+  const params = {};
+  const outputConfig = {};
+
+  if (format) outputConfig.format = format;
+  if (effort && !legado) outputConfig.effort = effort;
+  if (Object.keys(outputConfig).length) params.output_config = outputConfig;
+  if (thinking && !legado) params.thinking = { type: 'adaptive' };
+
+  return params;
+}
 
 export function textOf(response) {
   return response.content

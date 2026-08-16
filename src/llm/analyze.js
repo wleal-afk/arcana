@@ -1,4 +1,4 @@
-import { anthropic, MODEL_ANALYSIS, textOf } from './client.js';
+import { anthropic, MODEL_ANALYSIS, textOf, tune } from './client.js';
 
 // Esquema de metadata. Todos los campos son enums cerrados: el valor sirve para
 // ramificar en código (elegir tirada, elegir modo de continuidad, elegir tono),
@@ -85,10 +85,11 @@ export async function analyzeQuestion(question, { signal } = {}) {
         model: MODEL_ANALYSIS,
         max_tokens: 512,
         system: SYSTEM,
-        output_config: {
+        ...tune(MODEL_ANALYSIS, {
           effort: 'low',
+          thinking: false,
           format: { type: 'json_schema', schema: META_SCHEMA },
-        },
+        }),
         messages: [
           { role: 'user', content: `<pregunta_usuario>\n${question}\n</pregunta_usuario>` },
         ],

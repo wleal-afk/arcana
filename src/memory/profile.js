@@ -1,5 +1,5 @@
 import { db, nowISO } from '../db.js';
-import { anthropic, MODEL_ANALYSIS, textOf } from '../llm/client.js';
+import { anthropic, MODEL_PROFILE, textOf, tune } from '../llm/client.js';
 
 const CADA_N = 4;      // se regenera cada 4 lecturas
 const MAX_CHARS = 600; // techo duro: el resumen no puede dominar el prompt
@@ -60,10 +60,10 @@ export async function refreshProfile(sessionId) {
   try {
     const res = await anthropic().messages.create(
       {
-        model: MODEL_ANALYSIS,
+        model: MODEL_PROFILE,
         max_tokens: 400,
         system: SYSTEM,
-        output_config: { effort: 'low' },
+        ...tune(MODEL_PROFILE, { effort: 'low', thinking: false }),
         messages: [{ role: 'user', content: `<preguntas>\n${material}\n</preguntas>` }],
       },
       { timeout: 30_000 },

@@ -1,4 +1,4 @@
-import { anthropic, MODEL_INTERPRET, textOf } from './client.js';
+import { anthropic, MODEL_INTERPRET, textOf, tune } from './client.js';
 
 // El system prompt es estable byte a byte entre requests: todo lo variable va
 // en el turno de usuario. Eso mantiene el prefijo cacheable (prompt caching)
@@ -129,8 +129,7 @@ export async function interpret({
       model: MODEL_INTERPRET,
       max_tokens: 2000,
       system: [{ type: 'text', text: SYSTEM, cache_control: { type: 'ephemeral' } }],
-      thinking: { type: 'adaptive' },
-      output_config: { effort: 'medium' },
+      ...tune(MODEL_INTERPRET, { effort: 'medium' }),
       messages: [{ role: 'user', content: bloques.join('\n') }],
     },
     { signal, timeout: 120_000 },

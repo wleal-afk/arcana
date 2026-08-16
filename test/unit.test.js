@@ -120,3 +120,25 @@ test('ciclo de sesión sobre HTTP (sin llamar al modelo)', async () => {
     server.close();
   }
 });
+
+test('tune() adapta los parámetros al modelo (Haiku 4.5 no acepta effort ni adaptive)', async () => {
+  const { tune } = await import('../src/llm/client.js');
+
+  const opus = tune('claude-opus-5', { effort: 'medium' });
+  assert.deepEqual(opus.thinking, { type: 'adaptive' });
+  assert.equal(opus.output_config.effort, 'medium');
+
+  const haiku = tune('claude-haiku-4-5', { effort: 'medium' });
+  assert.equal(haiku.thinking, undefined, 'thinking adaptive devuelve 400 en Haiku 4.5');
+  assert.equal(haiku.output_config, undefined, 'effort devuelve 400 en Haiku 4.5');
+
+  // Structured outputs sí funciona en Haiku: el schema tiene que sobrevivir.
+  const schema = { type: 'object' };
+  const haikuFmt = tune('claude-haiku-4-5', { effort: 'low', thinking: false, format: schema });
+  assert.deepEqual(haikuFmt.output_config, { format: schema });
+  assert.equal(haikuFmt.output_config.effort, undefined);
+
+  const sonnet = tune('claude-sonnet-5', { effort: 'low', thinking: false, format: schema });
+  assert.equal(sonnet.output_config.effort, 'low');
+  assert.equal(sonnet.thinking, undefined);
+});
