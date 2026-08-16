@@ -30,7 +30,11 @@ export function detectCaps(overrides = {}) {
     width: Math.min(stdout.columns || 80, 100),
   };
 
-  return { ...caps, ...overrides };
+  const base = { ...caps, ...overrides };
+  // La cruz necesita ancho real y glifos; si no, se cae a la lista vertical.
+  // Se deriva de los valores ya sobrescritos, pero un `wide` explícito manda.
+  const wide = base.tty && base.unicode && base.width >= 64;
+  return { ...base, wide: overrides.wide ?? wide };
 }
 
 // Glifos con fallback ASCII. Nunca imprimir un símbolo sin pasar por acá.
