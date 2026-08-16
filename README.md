@@ -97,6 +97,23 @@ Toda la personalidad visual —color, ritmo, animación, temas— vive en
 Se degrada solo: sin TTY no hay animación, sin UTF-8 usa glifos ASCII, y respeta
 `NO_COLOR`, `TERM=dumb`, `CI` y `ARCANA_NO_ANIM`.
 
+## Costo por lectura
+
+Cada lectura guarda su consumo real en `reading_meta` — tokens crudos por etapa,
+modelo que los produjo, y tokens de caché leídos/escritos. `POST /ask` lo
+devuelve en `uso`, y `GET /history` acumula `costo_acumulado_usd` de la sesión.
+
+Los **tokens** no envejecen; el **costo** se estima con la tabla de precios de
+`src/llm/pricing.js`, que sí. Si los precios cambian, se actualiza esa tabla y
+se puede recalcular el histórico entero. Un modelo fuera de la tabla reporta
+costo `null` en vez de un número inventado.
+
+Sirve para comparar modelos con datos y no con estimaciones:
+
+```bash
+ARCANA_MODEL_INTERPRET=claude-sonnet-5 npm start   # y volvé a correr el smoke
+```
+
 ## Configuración
 
 | variable | default | |

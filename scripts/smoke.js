@@ -83,6 +83,12 @@ async function main() {
   check('largo dentro de rango (150-320 palabras)', palabras >= 120 && palabras <= 380, `${palabras} palabras`);
   check('sin markdown', !/[*#_`]|^\s*[-•]\s/m.test(l1.interpretacion));
 
+  const u = l1.uso;
+  check('reporta uso de tokens', u?.costo_usd != null,
+    `análisis ${u.analisis.in}/${u.analisis.out} tok · interpretación ${u.interpretacion.in}/${u.interpretacion.out} tok`);
+  console.log(`       cache: ${u.interpretacion.cache_read} leídos, ${u.interpretacion.cache_write} escritos`);
+  console.log(`       costo real: $${u.costo_usd.toFixed(4)} USD  (~$${(u.costo_usd * 1000).toFixed(2)} por 1.000 lecturas)`);
+
   console.log(`\n${l1.tirada.cartas.map((c) => `  ${c.slot}: ${c.carta.nombre}${c.invertida ? ' (inv)' : ''}`).join('\n')}`);
   console.log(`\n  ${l1.interpretacion.replace(/\n/g, '\n  ')}\n`);
 
@@ -108,6 +114,8 @@ async function main() {
   seccion('5. historial y borrado');
   const { data: hist } = await api(`/session/${SID}/history`);
   check('historial tiene 2 lecturas', hist.total === 2, `total=${hist.total}`);
+  check('acumula el costo de la sesión', hist.costo_acumulado_usd > 0,
+    `$${(hist.costo_acumulado_usd ?? 0).toFixed(4)} USD en 2 lecturas`);
   check('el historial trae las cartas', hist.lecturas?.[0]?.tirada?.cartas?.length > 0);
 
   const { status: del } = await api(`/session/${SID}`, { method: 'DELETE' });

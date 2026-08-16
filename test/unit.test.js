@@ -142,3 +142,28 @@ test('tune() adapta los parámetros al modelo (Haiku 4.5 no acepta effort ni ada
   assert.equal(sonnet.output_config.effort, 'low');
   assert.equal(sonnet.thinking, undefined);
 });
+
+test('costOf estima con precios de lista y no inventa modelos desconocidos', async () => {
+  const { costOf, sumCosts } = await import('../src/llm/pricing.js');
+
+  // Opus 5: $5/MTok in, $25/MTok out → 1000 in + 1000 out = $0.005 + $0.025
+  assert.equal(
+    costOf('claude-opus-5', { input_tokens: 1000, output_tokens: 1000 }),
+    0.03,
+  );
+  // Haiku 4.5 ($1/$5) sobre el mismo consumo: 5x más barato.
+  assert.equal(
+    costOf('claude-haiku-4-5', { input_tokens: 1000, output_tokens: 1000 }),
+    0.006,
+  );
+  // Leer de caché cuesta ~10% de la entrada.
+  assert.equal(
+    costOf('claude-opus-5', { input_tokens: 0, output_tokens: 0, cache_read_input_tokens: 1000 }),
+    0.0005,
+  );
+  // Modelo desconocido: null, no un número inventado.
+  assert.equal(costOf('modelo-inexistente', { input_tokens: 1000 }), null);
+  // Un null no contamina el total.
+  assert.equal(sumCosts(0.01, null), 0.01);
+  assert.equal(sumCosts(null, null), null);
+});

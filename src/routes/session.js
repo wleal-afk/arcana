@@ -5,6 +5,8 @@ import { cardById } from '../tarot/deck.js';
 import { drawSpread, chooseSpread, newSeed } from '../tarot/draw.js';
 import { analyzeQuestion } from '../llm/analyze.js';
 import { interpret, chooseTone } from '../llm/interpret.js';
+import { MODEL_INTERPRET } from '../llm/client.js';
+import { costOf, sumCosts, totals } from '../llm/pricing.js';
 import { detectCrisis, logSafetyEvent, crisisResponse } from '../safety/crisis.js';
 import { relevantHistory, readingCount } from '../memory/retrieve.js';
 import { pickMode } from '../memory/continuity.js';
@@ -114,11 +116,13 @@ router.post('/session/:id/ask', async (req, res) => {
 
   // --- Etapa 2: interpretación.
   let interpretation;
+  let usoInterpret = null;
   try {
     const out = await interpret({
       question, draw, meta, tone, history, profile, mode, cardById,
     });
     interpretation = out.text;
+    usoInterpret = out.usage;
   } catch (err) {
     if (err.code === 'REFUSAL') {
       return res.status(200).json({
@@ -129,6 +133,23 @@ router.post('/session/:id/ask', async (req, res) => {
     console.error('[ask] interpretación falló:', err.message);
     return res.status(502).json({ error: 'interpretacion_no_disponible' });
   }
+
+  // --- Consumo real de las dos etapas. Se guardan tokens crudos (no envejecen)
+  // junto al modelo que los produjo; el costo se estima con la tabla de precios
+  // y se puede recalcular sobre el histórico si los precios cambian.
+  const uso = {
+    analisis: {
+      modelo: meta._model ?? null,
+      ...totals(meta._usage),
+      costo_usd: costOf(meta._model, meta._usage),
+    },
+    interpretacion: {
+      modelo: MODEL_INTERPRET,
+      ...totals(usoInterpret),
+      costo_usd: costOf(MODEL_INTERPRET, usoInterpret),
+    },
+  };
+  uso.costo_usd = sumCosts(uso.analisis.costo_usd, uso.interpretacion.costo_usd);
 
   // --- Persistencia.
   const readingId = randomUUID();
@@ -155,6 +176,15 @@ router.post('/session/:id/ask', async (req, res) => {
     }
     insMeta.run(readingId, 'modo_continuidad', mode.id);
     insMeta.run(readingId, 'tono', tone);
+
+    for (const [etapa, u] of [['analisis', uso.analisis], ['interpretacion', uso.interpretacion]]) {
+      if (u.modelo) insMeta.run(readingId, `modelo_${etapa}`, u.modelo);
+      insMeta.run(readingId, `tokens_in_${etapa}`, String(u.in));
+      insMeta.run(readingId, `tokens_out_${etapa}`, String(u.out));
+      if (u.cache_read) insMeta.run(readingId, `cache_read_${etapa}`, String(u.cache_read));
+      if (u.cache_write) insMeta.run(readingId, `cache_write_${etapa}`, String(u.cache_write));
+    }
+    if (uso.costo_usd !== null) insMeta.run(readingId, 'costo_usd', uso.costo_usd.toFixed(6));
   });
   persist();
 
@@ -167,6 +197,7 @@ router.post('/session/:id/ask', async (req, res) => {
     interpretacion: interpretation,
     // Presentación: el cliente decide cómo pintar esto. La API no manda colores.
     render: { tono: tone, continuidad: mode.id },
+    uso,
   });
 
   // Fuera del camino crítico.
@@ -193,9 +224,18 @@ router.get('/session/:id/history', (req, res) => {
     'SELECT position, slot, card_id, reversed FROM reading_cards WHERE reading_id = ? ORDER BY position',
   );
 
+  const costoAcumulado = db
+    .prepare(
+      `SELECT SUM(CAST(m.value AS REAL)) AS total
+         FROM reading_meta m JOIN readings r ON r.id = m.reading_id
+        WHERE r.session_id = ? AND m.key = 'costo_usd'`,
+    )
+    .get(session.id).total;
+
   res.json({
     session_id: session.id,
     total: readingCount(session.id),
+    costo_acumulado_usd: costoAcumulado ?? 0,
     lecturas: rows.map((r) => ({
       reading_id: r.id,
       fecha: r.created_at,

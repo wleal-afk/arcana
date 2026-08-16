@@ -100,7 +100,8 @@ export async function analyzeQuestion(question, { signal } = {}) {
     if (res.stop_reason === 'refusal') return { ...META_FALLBACK, riesgo: 'crisis' };
     // output_config.format garantiza JSON válido contra el esquema; el try/catch
     // cubre truncado por max_tokens, no formato inválido.
-    return JSON.parse(textOf(res));
+    // Las claves con `_` no se persisten en reading_meta (ver routes/session.js).
+    return { ...JSON.parse(textOf(res)), _usage: res.usage, _model: MODEL_ANALYSIS };
   } catch (err) {
     console.error('[analyze] fallback:', err.message);
     return { ...META_FALLBACK };
