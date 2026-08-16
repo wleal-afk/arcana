@@ -108,7 +108,13 @@ Los **tokens** no envejecen; el **costo** se estima con la tabla de precios de
 se puede recalcular el histórico entero. Un modelo fuera de la tabla reporta
 costo `null` en vez de un número inventado.
 
-Sirve para comparar modelos con datos y no con estimaciones:
+El costo varía según el nivel elegido (`ARCANA_NIVEL_DEFAULT`): el servidor
+traduce el nivel semántico a un modelo concreto por etapa. Solo cambia el modelo
+de interpretación (la etapa más costosa, ~72% del gasto); el análisis y el
+perfil corren siempre con `claude-haiku-4-5`. Costos medidos por lectura:
+`alta` (opus 5) ~$0.029, `media` (sonnet 5) ~$0.014, `baja` (haiku 4.5) ~$0.006.
+
+Para comparar con datos en lugar de estimaciones:
 
 ```bash
 ARCANA_NIVEL_DEFAULT=media npm start   # y volvé a correr el smoke
