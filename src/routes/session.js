@@ -5,7 +5,7 @@ import { cardById } from '../tarot/deck.js';
 import { drawSpread, chooseSpread, newSeed } from '../tarot/draw.js';
 import { analyzeQuestion } from '../llm/analyze.js';
 import { interpret, chooseTone } from '../llm/interpret.js';
-import { MODEL_INTERPRET } from '../llm/client.js';
+import { resolveNivel, NIVELES, NIVEL_DEFAULT } from '../llm/client.js';
 import { costOf, sumCosts, totals } from '../llm/pricing.js';
 import { detectCrisis, logSafetyEvent, crisisResponse } from '../safety/crisis.js';
 import { relevantHistory, readingCount } from '../memory/retrieve.js';
@@ -71,6 +71,12 @@ router.post('/session/:id/ask', async (req, res) => {
     return res.status(400).json({ error: 'pregunta_muy_larga', maximo: MAX_LEN });
   }
 
+  const nivel = req.body?.nivel ?? NIVEL_DEFAULT;
+  if (!NIVELES[nivel]) {
+    return res.status(400).json({ error: 'nivel_invalido', validos: Object.keys(NIVELES) });
+  }
+  const modelos = resolveNivel(nivel);
+
   db.prepare('UPDATE sessions SET last_seen_at = ? WHERE id = ?').run(nowISO(), session.id);
 
   // --- Gate de seguridad, capa 1: determinística, antes de gastar un token.
@@ -81,7 +87,7 @@ router.post('/session/:id/ask', async (req, res) => {
   }
 
   // --- Etapa 1: análisis estructurado.
-  const meta = await analyzeQuestion(question);
+  const meta = await analyzeQuestion(question, { model: modelos.analysis });
 
   // --- Gate de seguridad, capa 2: el modelo como segunda red.
   if (meta.riesgo === 'crisis') {
@@ -119,7 +125,7 @@ router.post('/session/:id/ask', async (req, res) => {
   let usoInterpret = null;
   try {
     const out = await interpret({
-      question, draw, meta, tone, history, profile, mode, cardById,
+      question, draw, meta, tone, history, profile, mode, cardById, model: modelos.interpret,
     });
     interpretation = out.text;
     usoInterpret = out.usage;
@@ -144,9 +150,9 @@ router.post('/session/:id/ask', async (req, res) => {
       costo_usd: costOf(meta._model, meta._usage),
     },
     interpretacion: {
-      modelo: MODEL_INTERPRET,
+      modelo: modelos.interpret,
       ...totals(usoInterpret),
-      costo_usd: costOf(MODEL_INTERPRET, usoInterpret),
+      costo_usd: costOf(modelos.interpret, usoInterpret),
     },
   };
   uso.costo_usd = sumCosts(uso.analisis.costo_usd, uso.interpretacion.costo_usd);
@@ -189,6 +195,7 @@ router.post('/session/:id/ask', async (req, res) => {
   persist();
 
   res.json({
+    nivel,
     tipo: 'lectura',
     reading_id: readingId,
     fecha: createdAt,
@@ -202,7 +209,7 @@ router.post('/session/:id/ask', async (req, res) => {
 
   // Fuera del camino crítico.
   if (needsRefresh(session.id, total + 1)) {
-    refreshProfile(session.id).catch((e) => console.error('[profile]', e.message));
+    refreshProfile(session.id, { model: modelos.profile }).catch((e) => console.error('[profile]', e.message));
   }
 });
 

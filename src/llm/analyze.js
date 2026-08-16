@@ -1,4 +1,4 @@
-import { anthropic, MODEL_ANALYSIS, textOf, tune } from './client.js';
+import { anthropic, textOf, tune } from './client.js';
 
 // Esquema de metadata. Todos los campos son enums cerrados: el valor sirve para
 // ramificar en código (elegir tirada, elegir modo de continuidad, elegir tono),
@@ -78,14 +78,14 @@ Criterios:
  * Etapa 1 del pipeline: extracción estructurada.
  * Nunca lanza: si el modelo falla, la lectura sigue con metadata neutra.
  */
-export async function analyzeQuestion(question, { signal } = {}) {
+export async function analyzeQuestion(question, { model, signal } = {}) {
   try {
     const res = await anthropic().messages.create(
       {
-        model: MODEL_ANALYSIS,
+        model: model,
         max_tokens: 512,
         system: SYSTEM,
-        ...tune(MODEL_ANALYSIS, {
+        ...tune(model, {
           effort: 'low',
           thinking: false,
           format: { type: 'json_schema', schema: META_SCHEMA },
@@ -101,7 +101,7 @@ export async function analyzeQuestion(question, { signal } = {}) {
     // output_config.format garantiza JSON válido contra el esquema; el try/catch
     // cubre truncado por max_tokens, no formato inválido.
     // Las claves con `_` no se persisten en reading_meta (ver routes/session.js).
-    return { ...JSON.parse(textOf(res)), _usage: res.usage, _model: MODEL_ANALYSIS };
+    return { ...JSON.parse(textOf(res)), _usage: res.usage, _model: model };
   } catch (err) {
     console.error('[analyze] fallback:', err.message);
     return { ...META_FALLBACK };

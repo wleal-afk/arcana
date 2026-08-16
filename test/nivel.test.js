@@ -30,3 +30,33 @@ test('todos los modelos de los presets tienen precio conocido', async () => {
     }
   }
 });
+
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
+process.env.ARCANA_DB = join(mkdtempSync(join(tmpdir(), 'arcana-nivel-')), 'test.db');
+const { createApp } = await import('../src/server.js');
+
+test('el nivel inválido se rechaza antes de gastar un token', async () => {
+  const app = createApp();
+  const server = app.listen(0);
+  const base = `http://localhost:${server.address().port}`;
+  try {
+    const s = await (await fetch(`${base}/session`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({}),
+    })).json();
+
+    const res = await fetch(`${base}/session/${s.session_id}/ask`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ pregunta: '¿y ahora?', nivel: 'ultra' }),
+    });
+    assert.equal(res.status, 400);
+    assert.equal((await res.json()).error, 'nivel_invalido');
+  } finally {
+    server.close();
+  }
+});

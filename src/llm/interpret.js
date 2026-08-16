@@ -1,4 +1,4 @@
-import { anthropic, MODEL_INTERPRET, textOf, tune } from './client.js';
+import { anthropic, textOf, tune } from './client.js';
 
 // El system prompt es estable byte a byte entre requests: todo lo variable va
 // en el turno de usuario. Eso mantiene el prefijo cacheable (prompt caching)
@@ -105,7 +105,7 @@ function historialBlock({ lecturas, cartas_recurrentes }, cardsById) {
 }
 
 export async function interpret({
-  question, draw, meta, tone, history, profile, mode, cardById, signal,
+  question, draw, meta, tone, history, profile, mode, cardById, model, signal,
 }) {
   const bloques = [
     '<lectura>',
@@ -126,10 +126,10 @@ export async function interpret({
 
   const res = await anthropic().messages.create(
     {
-      model: MODEL_INTERPRET,
+      model: model,
       max_tokens: 2000,
       system: [{ type: 'text', text: SYSTEM, cache_control: { type: 'ephemeral' } }],
-      ...tune(MODEL_INTERPRET, { effort: 'medium' }),
+      ...tune(model, { effort: 'medium' }),
       messages: [{ role: 'user', content: bloques.join('\n') }],
     },
     { signal, timeout: 120_000 },
