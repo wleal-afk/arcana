@@ -16,7 +16,10 @@
 - La API nunca conoce presentación: recibe y devuelve `nivel` semántico, nunca nombres de modelo ni colores.
 - Los dólares no se imprimen nunca en la UI normal. Solo con `--dev`.
 - Copy en español rioplatense, en minúscula salvo nombres propios de nivel.
-- Todo glifo unicode necesita fallback ASCII vía `glyphs(caps)`.
+- Todo glifo unicode necesita fallback ASCII vía `glyphs(caps)`. **Excepción
+  única:** `cli/render/cross.js` es unicode-only por diseño — sin unicode el
+  render cae a la lista vertical, así que un fallback ASCII ahí sería un camino
+  que nunca corre. El módulo lo documenta explícitamente.
 - Presupuesto por defecto: `0.20` USD. Barra de 16 segmentos.
 - Nombres de nivel en UI: `plenilunio` (alta), `media luna` (media), `luna nueva` (baja).
 - Costos de referencia por lectura: alta `0.0290`, media `0.0142`, baja `0.0058`.
