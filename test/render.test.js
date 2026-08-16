@@ -58,3 +58,21 @@ test('caps.wide exige ancho, unicode y tty', () => {
   // Un override explícito manda, para que --plain pueda forzarlo.
   assert.equal(detectCaps({ tty: true, unicode: true, width: 80, wide: false }).wide, false);
 });
+
+test('la columna se ajusta cuando una celda es más ancha que el mínimo', () => {
+  // "situación" es la celda sin margen de seguridad propio: en el renglón de
+  // contenido no tiene prefijo antes de "obstáculo", así que si su nombre
+  // (con marca de invertida) supera el ancho fijo de columna, "obstáculo"
+  // queda pegado justo detrás con cero espacio. Con columna dinámica no.
+  const cartas = CARTAS.map((c) =>
+    c.slot === 'situacion'
+      ? { ...c, carta: { nombre: 'Caballero de Bastos' }, invertida: true }
+      : c,
+  );
+  const lines = cross({ cartas, labels: LABELS });
+  const linea = lines.find((l) => l.includes('Caballero de Bastos'));
+  const finSituacion = linea.indexOf('Caballero de Bastos') + 'Caballero de Bastos ▼ invertida'.length;
+  const inicioObstaculo = linea.indexOf('Diez de Oros');
+  // Las celdas no se solapan y queda al menos un espacio entre ellas.
+  assert.ok(inicioObstaculo > finSituacion);
+});
