@@ -352,7 +352,7 @@ git commit -m "Reemplaza las env vars de modelo por ARCANA_NIVEL_DEFAULT"
 
 **Interfaces:**
 - Consumes: nada.
-- Produces: `COSTO_PROMEDIO` (objeto), `nuevaBarra(presupuesto) → Barra`, `descontar(barra, costo) → Barra`, `restante(barra) → number`, `alcanza(barra, nivel) → boolean`, `lecturasRestantes(barra, nivel) → number`, `segmentos(barra, total) → { llenos, vacios }`. `Barra` es `{ presupuesto, gastado, desconocido, lecturas }` y es **inmutable**: cada función devuelve una nueva.
+- Produces: `COSTO_PROMEDIO` (objeto), `nuevaBarra(presupuesto) → Barra`, `descontar(barra, costo) → Barra`, `restante(barra) → number`, `alcanza(barra, nivel) → boolean`, `lecturasRestantes(barra, nivel) → number | null` (`null` cuando la barra es indeterminada o el nivel no existe: "no se puede saber" no es lo mismo que "cero"), `segmentos(barra, total) → { llenos, vacios }`. `Barra` es `{ presupuesto, gastado, desconocido, lecturas }` y es **inmutable**: cada función devuelve una nueva.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -948,9 +948,12 @@ export async function runRepl({ api, render, presupuesto = 0.20, dev = false }) 
     }
 
     if (!alcanza(barra, nivel)) {
+      // `lecturasRestantes` devuelve null cuando no se puede medir; null > 0 es
+      // false, así que hay que distinguirlo de "cero" en vez de tragarlo.
       const conBaja = lecturasRestantes(barra, 'baja');
       render.info(`  no alcanza para ${nivel}.`);
-      if (conBaja > 0) render.info(`  con luna nueva te queda para ~${conBaja} lectura(s): › nivel baja`);
+      if (conBaja === null) render.info('  no se puede medir el consumo.');
+      else if (conBaja > 0) render.info(`  con luna nueva te queda para ~${conBaja} lectura(s): › nivel baja`);
       continue;
     }
 
