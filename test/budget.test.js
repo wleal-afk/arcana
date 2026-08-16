@@ -64,3 +64,19 @@ test('los segmentos reflejan la proporción restante', () => {
 test('COSTO_PROMEDIO cubre los tres niveles', () => {
   assert.deepEqual(Object.keys(COSTO_PROMEDIO).sort(), ['alta', 'baja', 'media']);
 });
+
+test('lecturasRestantes devuelve null con barra indeterminada', () => {
+  const b = descontar(nuevaBarra(0.20), null);
+  assert.equal(lecturasRestantes(b, 'alta'), null);
+});
+
+test('lecturasRestantes devuelve null con nivel inexistente', () => {
+  const b = nuevaBarra(0.20);
+  assert.equal(lecturasRestantes(b, 'inventado'), null);
+});
+
+test('alcanza es permisivo con nivel inexistente: devuelve true', () => {
+  // Si el nivel no existe en COSTO_PROMEDIO, no podemos rechazar. ?? 0 es intencional.
+  const b = nuevaBarra(0.20);
+  assert.equal(alcanza(b, 'inexistente'), true);
+});

@@ -32,6 +32,10 @@ export function alcanza(barra, nivel) {
   return restante(barra) >= (COSTO_PROMEDIO[nivel] ?? 0);
 }
 
+/**
+ * Devuelve el número de lecturas que restan al presupuesto, o null si no se puede saber.
+ * @returns {number | null} Número de lecturas si se conoce el costo, null si la barra es indeterminada o el nivel no existe.
+ */
 export function lecturasRestantes(barra, nivel) {
   const costo = COSTO_PROMEDIO[nivel];
   if (!costo || barra.desconocido) return null;
