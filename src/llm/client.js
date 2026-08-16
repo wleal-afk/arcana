@@ -7,12 +7,23 @@ export function anthropic() {
   return _client;
 }
 
-// Un modelo por etapa, los tres en Opus 5 mientras se evalúa la calidad.
-// Bajar análisis y perfil a Haiku es un cambio de env var (ahorra ~11%);
-// la palanca real de costo es MODEL_INTERPRET, que es ~95% del gasto.
-export const MODEL_INTERPRET = process.env.ARCANA_MODEL_INTERPRET ?? 'claude-opus-5';
-export const MODEL_ANALYSIS = process.env.ARCANA_MODEL_ANALYSIS ?? 'claude-opus-5';
-export const MODEL_PROFILE = process.env.ARCANA_MODEL_PROFILE ?? 'claude-opus-5';
+/**
+ * Presets de nivel. El escalón real lo marca `interpret`: en la lectura medida
+ * se llevó el 72% del gasto. El análisis produce ~77 tokens de salida, así que
+ * subirlo de Haiku agrega costo y no calidad percibida.
+ */
+export const NIVELES = {
+  alta:  { interpret: 'claude-opus-5',    analysis: 'claude-haiku-4-5', profile: 'claude-haiku-4-5' },
+  media: { interpret: 'claude-sonnet-5',  analysis: 'claude-haiku-4-5', profile: 'claude-haiku-4-5' },
+  baja:  { interpret: 'claude-haiku-4-5', analysis: 'claude-haiku-4-5', profile: 'claude-haiku-4-5' },
+};
+
+export const NIVEL_DEFAULT = NIVELES[process.env.ARCANA_NIVEL_DEFAULT] ? process.env.ARCANA_NIVEL_DEFAULT : 'alta';
+
+/** Un nivel desconocido no es un error: cae al default. */
+export function resolveNivel(nivel) {
+  return NIVELES[nivel] ?? NIVELES[NIVEL_DEFAULT];
+}
 
 // Haiku 4.5 y Sonnet 4.5 son de la generación anterior a `effort` y al thinking
 // adaptativo: mandarles cualquiera de los dos devuelve 400. Structured outputs
