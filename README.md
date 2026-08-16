@@ -111,7 +111,7 @@ costo `null` en vez de un número inventado.
 Sirve para comparar modelos con datos y no con estimaciones:
 
 ```bash
-ARCANA_MODEL_INTERPRET=claude-sonnet-5 npm start   # y volvé a correr el smoke
+ARCANA_NIVEL_DEFAULT=media npm start   # y volvé a correr el smoke
 ```
 
 ## Configuración
@@ -122,9 +122,8 @@ ARCANA_MODEL_INTERPRET=claude-sonnet-5 npm start   # y volvé a correr el smoke
 | `PORT` | `3000` | |
 | `ARCANA_DB` | `./data/arcana.db` | |
 | `ARCANA_RETENTION_DAYS` | `180` | purga por inactividad |
-| `ARCANA_MODEL_INTERPRET` | `claude-opus-5` | ~95% del gasto: la palanca real de costo |
-| `ARCANA_MODEL_ANALYSIS` | `claude-opus-5` | extracción estructurada (~5% del gasto) |
-| `ARCANA_MODEL_PROFILE` | `claude-opus-5` | resumen en background |
+| `ARCANA_NIVEL_DEFAULT` | `alta` | nivel cuando el request no manda uno: `alta` (opus 5), `media` (sonnet 5), `baja` (haiku 4.5) |
+| `ARCANA_PRESUPUESTO` | `0.20` | magia por corrida de terminal, en USD |
 | `ARCANA_API` | `http://localhost:3000` | usada por el CLI |
 
 ## Tests
