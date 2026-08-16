@@ -7,6 +7,7 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { createRenderer } from './render/index.js';
+import { runRepl } from './repl.js';
 
 // `arcana ... | head` cierra el pipe antes de que terminemos de escribir.
 // Sin esto, Node lanza EPIPE con un stack trace; el comportamiento correcto
@@ -59,6 +60,7 @@ function parseArgs(argv) {
     else if (a === '--theme') flags.theme = argv[++i];
     else if (a === '--tono') flags.tono = argv[++i];
     else if (a === '--limit') flags.limit = argv[++i];
+    else if (a === '--dev') flags.dev = true;
     else if (a === '-h' || a === '--help') flags.help = true;
     else rest.push(a);
   }
@@ -67,20 +69,28 @@ function parseArgs(argv) {
 
 const HELP = `arcana — lecturas de tarot desde la terminal
 
-  arcana nueva [--tono directo|poetico]   crea una sesión
-  arcana "¿tu pregunta?"                  pide una lectura
+  arcana                                  abre el REPL (elegís nivel de magia)
+  arcana "¿tu pregunta?"                  una lectura y salir
   arcana historial [--limit N]            lecturas anteriores
   arcana olvidar                          borra la sesión y su historial
+
+dentro del REPL
+  <pregunta>     pide una lectura
+  nivel <x>      cambia el nivel: alta | media | baja
+  historial      lecturas anteriores
+  salir          termina y muestra el resumen
 
 opciones de presentación (sólo del cliente; la API no las conoce)
   --plain        sin color, sin animación, sin unicode
   --no-anim      mantiene el color, quita el efecto máquina de escribir
   --theme X      fuerza un tema (directo | poetico)
+  --dev          muestra tokens y costo real por lectura
 
 variables de entorno
   ARCANA_API=http://localhost:3000
-  NO_COLOR=1        desactiva color (estándar no-color.org)
-  ARCANA_NO_ANIM=1  desactiva animación de forma persistente
+  ARCANA_PRESUPUESTO=0.20   magia por corrida de terminal, en USD
+  NO_COLOR=1                desactiva color (estándar no-color.org)
+  ARCANA_NO_ANIM=1          desactiva animación de forma persistente
 `;
 
 async function main() {
@@ -92,9 +102,24 @@ async function main() {
 
   const render = createRenderer({ caps: capOverrides, theme: flags.theme });
 
-  if (flags.help || rest.length === 0) {
+  if (flags.help) {
     process.stdout.write(HELP);
     return;
+  }
+
+  // Sin argumentos y con terminal interactiva: el REPL. Con argumentos o por
+  // pipe: un disparo, sin barra ni selección de nivel, para scripts.
+  if (rest.length === 0) {
+    if (!render.caps.tty) {
+      process.stdout.write(HELP);
+      return;
+    }
+    return runRepl({
+      api,
+      render,
+      presupuesto: Number(process.env.ARCANA_PRESUPUESTO ?? 0.20),
+      dev: flags.dev,
+    });
   }
 
   const cfg = loadConfig();

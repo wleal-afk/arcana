@@ -78,24 +78,58 @@ curl -s -XDELETE localhost:3000/session/$SID
 
 ## CLI
 
-```bash
-node cli/arcana.js nueva                          # crea sesión (~/.config/arcana)
-node cli/arcana.js "¿debería aceptar el trabajo?" # lectura
-node cli/arcana.js historial
-node cli/arcana.js olvidar                        # borra sesión e historial
 ```
+$ node cli/arcana.js --help
+arcana — lecturas de tarot desde la terminal
+
+  arcana                                  abre el REPL (elegís nivel de magia)
+  arcana "¿tu pregunta?"                  una lectura y salir
+  arcana historial [--limit N]            lecturas anteriores
+  arcana olvidar                          borra la sesión y su historial
+
+dentro del REPL
+  <pregunta>     pide una lectura
+  nivel <x>      cambia el nivel: alta | media | baja
+  historial      lecturas anteriores
+  salir          termina y muestra el resumen
+
+opciones de presentación (sólo del cliente; la API no las conoce)
+  --plain        sin color, sin animación, sin unicode
+  --no-anim      mantiene el color, quita el efecto máquina de escribir
+  --theme X      fuerza un tema (directo | poetico)
+  --dev          muestra tokens y costo real por lectura
+
+variables de entorno
+  ARCANA_API=http://localhost:3000
+  ARCANA_PRESUPUESTO=0.20   magia por corrida de terminal, en USD
+  NO_COLOR=1                desactiva color (estándar no-color.org)
+  ARCANA_NO_ANIM=1          desactiva animación de forma persistente
+```
+
+Sin argumentos y con terminal interactiva, `arcana` abre el REPL: pide el
+nivel de magia una sola vez y después mantiene la sesión, la barra y el nivel
+elegido entre pregunta y pregunta. Con argumentos —o corriendo por pipe, sin
+TTY— hace un disparo y sale, sin barra ni selección de nivel: es el modo que
+usan los scripts, y su comportamiento no cambió.
+
+El nivel de magia tiene tres escalones, de más a menos gasto por lectura:
+
+| nivel (`nivel <x>`) | nombre en el REPL |
+|---|---|
+| `alta` | Plenilunio |
+| `media` | Media luna |
+| `baja` | Luna nueva |
+
+Al abrir el REPL se elige uno; `nivel alta` (o `media`/`baja`) lo cambia a
+mitad de sesión. La barra de magia muestra cuánto de `ARCANA_PRESUPUESTO`
+llevás gastado en la corrida actual: es un recordatorio de consumo, no un
+tope real de gasto —se recarga sola en cuanto abrís otra terminal—. Los
+dólares no se imprimen en ningún lado salvo con `--dev`.
 
 Toda la personalidad visual —color, ritmo, animación, temas— vive en
-`cli/render/`. La API no sabe que existe.
-
-```
---plain      sin color, sin unicode, sin animación
---no-anim    color sí, efecto máquina de escribir no
---theme X    fuerza tema (directo | poetico)
-```
-
-Se degrada solo: sin TTY no hay animación, sin UTF-8 usa glifos ASCII, y respeta
-`NO_COLOR`, `TERM=dumb`, `CI` y `ARCANA_NO_ANIM`.
+`cli/render/`. La API no sabe que existe. Se degrada solo: sin TTY no hay
+animación, sin UTF-8 usa glifos ASCII, y respeta `NO_COLOR`, `TERM=dumb`,
+`CI` y `ARCANA_NO_ANIM`.
 
 ## Costo por lectura
 
