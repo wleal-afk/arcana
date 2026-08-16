@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Lectura de tarot programatica, con IA y magia integrada.",
   "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
   "main": "src/server.js",
   "bin": {
     "arcana": "./cli/arcana.js"
