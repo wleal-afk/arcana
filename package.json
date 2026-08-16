@@ -4,12 +4,15 @@
   "description": "Lectura de tarot programatica, con IA y magia integrada.",
   "type": "module",
   "main": "src/server.js",
-  "bin": { "arcana": "./cli/arcana.js" },
+  "bin": {
+    "arcana": "./cli/arcana.js"
+  },
   "scripts": {
-    "start": "node src/server.js",
-    "dev": "node --watch src/server.js",
+    "start": "node --env-file-if-exists=.env src/server.js",
+    "dev": "node --watch --env-file-if-exists=.env src/server.js",
     "test": "node --test test/*.test.js",
-    "cli": "node cli/arcana.js"
+    "cli": "node --env-file-if-exists=.env cli/arcana.js",
+    "smoke": "node --env-file-if-exists=.env scripts/smoke.js"
   },
   "license": "MIT",
   "dependencies": {

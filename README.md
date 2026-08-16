@@ -9,12 +9,34 @@ pregunta que la persona escribe y de su historial — nunca de un formulario.
 Las decisiones de diseño (análisis de la pregunta, memoria entre sesiones, capa
 de presentación) están en **[DESIGN.md](./DESIGN.md)**.
 
-## Correr
+## Correr en local
+
+Requiere Node 22+ (usa `--env-file-if-exists`, sin dependencia de dotenv).
 
 ```bash
 npm install
-export ANTHROPIC_API_KEY=...   # o `ant auth login`
-npm start                      # http://localhost:3000
+cp .env.example .env      # y poné tu ANTHROPIC_API_KEY
+npm start                 # http://localhost:3000
+```
+
+En otra terminal:
+
+```bash
+npm test        # unitarios — no llaman al modelo, ~0.4s
+npm run smoke   # camino real end-to-end — SÍ gasta tokens
+```
+
+`npm run smoke` es el que responde "¿la integración funciona?". Hace dos
+lecturas seguidas a propósito: la segunda verifica que la memoria entre lecturas
+y la rotación de modos de continuidad estén funcionando. Imprime ambas
+interpretaciones para poder juzgarlas a ojo, que es lo que ningún assert cubre.
+
+Después, probá el CLI contra ese mismo servidor:
+
+```bash
+npm run cli -- "¿debería aceptar la oferta de trabajo?"
+npm run cli -- historial
+npm run cli -- --plain "misma pregunta, sin color ni animación"
 ```
 
 ## API
