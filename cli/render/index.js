@@ -2,12 +2,24 @@ import { stdout } from 'node:process';
 import { detectCaps, glyphs } from './caps.js';
 import { theme } from './themes.js';
 import { painter } from './paint.js';
+import { cross } from './cross.js';
 
 /**
  * Capa de presentación. Recibe el JSON crudo de la API y decide todo lo visual.
  * No conoce HTTP ni la forma en que se obtuvo la respuesta: si mañana hay web,
  * la API no arrastra nada de esto.
  */
+
+/**
+ * El tipeo a ritmo fijo castiga los textos largos: 275 palabras a 6ms/carácter
+ * son ~10s. Se acota el total y se conserva la sensación de revelado.
+ */
+const TIPEO_MAX_MS = 4000;
+
+export function ritmoTipeo(largo, base) {
+  if (largo <= 0) return base;
+  return Math.max(0.1, Math.min(base, TIPEO_MAX_MS / largo));
+}
 export function createRenderer(opts = {}) {
   const caps = detectCaps(opts.caps);
   const g = glyphs(caps);
@@ -54,18 +66,6 @@ export function createRenderer(opts = {}) {
     return p[carta.palo] ?? p.base;
   }
 
-  async function shuffle({ t, p, r }) {
-    if (!caps.animation) return;
-    const frames = caps.unicode ? ['▚▚▚', '▞▞▞', '▟▙▟', '▛▜▛'] : ['[|]', '[/]', '[-]', '[\\]'];
-    const until = Date.now() + r.shuffleMs;
-    let i = 0;
-    while (Date.now() < until) {
-      write(`\r${p.dim(`${t.copy.barajando} `)}${p.accent(frames[i++ % frames.length])}`);
-      await sleep(90);
-    }
-    write(`\r${' '.repeat(t.copy.barajando.length + 6)}\r`);
-  }
-
   function clear({ r }) {
     if (caps.animation && r.clearBetweenScenes) write('\x1b[2J\x1b[H');
   }
@@ -73,32 +73,72 @@ export function createRenderer(opts = {}) {
   return {
     caps,
 
+    /**
+     * Anima mientras corre la llamada al modelo (~18s). Devuelve la función de
+     * corte: la animación cubre la espera real, no la simula después.
+     */
+    esperando(tono) {
+      const { t, p } = ctx(tono);
+      if (!caps.animation) {
+        write(`${p.dim(`${t.copy.barajando}…`)}\n`);
+        return () => {};
+      }
+      const frames = caps.unicode ? ['▚▚▚', '▞▞▞', '▟▙▟', '▛▜▛'] : ['[|]', '[/]', '[-]', '[\\]'];
+      let i = 0;
+      const timer = setInterval(() => {
+        write(`\r${p.dim(`${t.copy.barajando} `)}${p.accent(frames[i++ % frames.length])}`);
+      }, 90);
+      return () => {
+        clearInterval(timer);
+        write(`\r${' '.repeat(t.copy.barajando.length + 6)}\r`);
+      };
+    },
+
+    /** La barra de magia. Nunca imprime dólares. */
+    barra(estado, nivel, { llenos, vacios }) {
+      const { t, p } = ctx();
+      const lleno = caps.unicode ? '◈' : '#';
+      const vacio = caps.unicode ? '◇' : '-';
+      if (estado.desconocido) {
+        write(`  ${p.invertida('~'.repeat(llenos + vacios))}  ${p.dim('magia de origen desconocido')}\n`);
+        return;
+      }
+      write(`  ${p.accent(lleno.repeat(llenos))}${p.dim(vacio.repeat(vacios))}   ${p.dim(t.niveles[nivel])}\n`);
+    },
+
     async reading(res) {
       const c = ctx(res.render?.tono);
       const { t, p, r } = c;
 
       clear(c);
-      await shuffle(c);
 
       write(`${p.dim(g.sep.repeat(Math.min(caps.width, 60)))}\n`);
       write(`${p.bold(p.accent(t.copy.revelando))} ${p.dim(`(${res.tirada.tipo})`)}\n\n`);
 
-      for (const item of res.tirada.cartas) {
-        const paint = cardColor(p, item.carta, item.invertida);
-        const marca = item.invertida ? ` ${g.down} invertida` : '';
-        write(
-          `  ${p.dim(`${g.card} ${item.slot.padEnd(10)}`)}` +
-            `${paint(item.carta.nombre)}${p.invertida(marca)}\n`,
-        );
-        if (caps.animation) await sleep(r.pauseMs);
+      if (caps.wide && res.tirada.tipo === 'cruz') {
+        for (const line of cross({
+          cartas: res.tirada.cartas,
+          labels: t.slots,
+          pintar: (item) => cardColor(p, item.carta, item.invertida)(item.carta.nombre),
+        })) {
+          write(`${line}\n`);
+        }
+      } else {
+        for (const item of res.tirada.cartas) {
+          const paint = cardColor(p, item.carta, item.invertida);
+          const marca = item.invertida ? ` ${g.down} invertida` : '';
+          const label = t.slots[item.slot] ?? item.slot;
+          write(`  ${p.dim(`${g.card} ${label.padEnd(11)}`)}${paint(item.carta.nombre)}${p.invertida(marca)}\n`);
+        }
       }
 
       write(`\n${p.dim(g.sep.repeat(Math.min(caps.width, 60)))}\n\n`);
       if (caps.animation) await sleep(r.pauseMs);
 
+      const ms = ritmoTipeo(res.interpretacion.length, r.typeMs);
       for (const line of wrap(res.interpretacion, caps.width - 4)) {
         if (!line) { write('\n'); continue; }
-        await type(`  ${line}`, p.base, r.typeMs);
+        await type(`  ${line}`, p.base, ms);
       }
       write('\n');
     },

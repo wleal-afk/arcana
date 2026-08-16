@@ -23,6 +23,12 @@ export const THEMES = {
     },
     rhythm: { typeMs: 6, pauseMs: 220, shuffleMs: 700, clearBetweenScenes: false },
     copy: { barajando: 'Barajando', revelando: 'La tirada', leyendo: 'Leyendo' },
+    slots: {
+      situacion: 'situación', obstaculo: 'obstáculo', raiz: 'raíz',
+      consejo: 'consejo', resultado: 'resultado',
+      pasado: 'pasado', presente: 'presente', futuro: 'futuro', unica: 'única',
+    },
+    niveles: { alta: 'plenilunio', media: 'media luna', baja: 'luna nueva' },
   },
   poetico: {
     id: 'poetico',
@@ -39,6 +45,12 @@ export const THEMES = {
     },
     rhythm: { typeMs: 14, pauseMs: 600, shuffleMs: 1400, clearBetweenScenes: true },
     copy: { barajando: 'Barajando el mazo', revelando: 'Lo que salió', leyendo: 'Leyendo las cartas' },
+    slots: {
+      situacion: 'situación', obstaculo: 'obstáculo', raiz: 'raíz',
+      consejo: 'consejo', resultado: 'resultado',
+      pasado: 'pasado', presente: 'presente', futuro: 'futuro', unica: 'única',
+    },
+    niveles: { alta: 'plenilunio', media: 'media luna', baja: 'luna nueva' },
   },
 };
 

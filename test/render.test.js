@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 
 const { cross } = await import('../cli/render/cross.js');
 const { detectCaps } = await import('../cli/render/caps.js');
+const { ritmoTipeo } = await import('../cli/render/index.js');
+const { theme } = await import('../cli/render/themes.js');
 
 const CARTAS = [
   { slot: 'situacion', carta: { nombre: 'El Sol' }, invertida: false },
@@ -47,6 +49,29 @@ test('cross acepta un pintor y no rompe el alineado', () => {
   const visible = (s) => s.replace(/\x1b\[[0-9;]*m/g, '').length;
   for (let i = 0; i < plano.length; i++) {
     assert.equal(visible(pintado[i]), plano[i].length);
+  }
+});
+
+test('el ritmo de tipeo acota el tiempo total del texto largo', () => {
+  // Texto corto: usa el ritmo base.
+  assert.equal(ritmoTipeo(100, 6), 6);
+  // Texto largo: baja el ritmo para no pasar de ~4s.
+  const largo = 4000;
+  assert.ok(ritmoTipeo(largo, 6) < 6);
+  assert.ok(ritmoTipeo(largo, 6) * largo <= 4000);
+  // Nunca cero: se perdería el efecto por completo.
+  assert.ok(ritmoTipeo(100000, 6) > 0);
+});
+
+test('los temas traen rótulos acentuados y nombres de nivel', () => {
+  for (const id of ['directo', 'poetico']) {
+    const t = theme(id);
+    assert.equal(t.slots.situacion, 'situación');
+    assert.equal(t.slots.raiz, 'raíz');
+    assert.equal(t.slots.obstaculo, 'obstáculo');
+    assert.equal(t.niveles.alta, 'plenilunio');
+    assert.equal(t.niveles.media, 'media luna');
+    assert.equal(t.niveles.baja, 'luna nueva');
   }
 });
 
